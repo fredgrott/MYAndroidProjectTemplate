@@ -2,3 +2,5 @@ bin/*
 build/*
 gen/*
 local.properties
+/build
+/.apt_generated
