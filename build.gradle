@@ -1,0 +1,108 @@
+/*
+   build.gradle file for android java applicatiojn development
+   according to classic Eclipse layout conventions
+
+   TestProject is setup as Eclipse Androdi project but in Gradle its just a
+   sourceset fo dirs not treated as a sub project by Gradle
+
+   authore: Fred Grott 1 27 2014
+*/
+
+buildscript {
+	repositories {
+	  mavenCentral()
+	  // loads local jars that I setup before va ivy
+	  ivy {
+		  url "${System.properties['user.home']}/.ivy2/local"
+	  }
+	}
+     //can we put our optional ant tasks here?
+	// classpath {
+    //        pathElement(location: buildscript.configurations.classpath.asPath)
+      //  }
+	dependencies {
+
+		classpath 'com.android.tools.build:gradle:0.8'
+		classpath 'gws.grottworkshop.checkstyle:checkstyle-all:5.6'
+		classpath 'gws.grottworkshop:gwsdroidlava:1.0'
+		classpath 'gws.grottworkshop:javancss:32.53'
+		classpath 'gws.grottworkshop:zutubi-android-ant:0.7.13'
+		classpath 'jdepend:jdepend:2.9.1'
+		classpath 'org.specs2:classycle:1.4.1'
+
+  }
+}
+
+apply plugin: 'android'
+
+repositories {
+	mavenCentral()
+	ivy {
+		url "${System.properties['user.home']}/.ivy2/local"
+	}
+}
+
+// extension properties, helps in bulds with multiple sub modules, etc
+ext.daggerVersion = '1.1.0';
+ext.javawriterVersion = '2.1.1';
+ext.javaxinjectVersion = '1';
+ext.flowVersion = '0.2';
+ext.mortarVersion = '0.2';
+ext.ottoVersion = '1.3.4';
+ext.festandroidVersion = '1.0.7';
+ext.esprerssocontribbundledVersion = '1.1';
+ext.mockitocoreVersion = '1.9.5';
+ext.objenesisVersion = '1.0';
+
+configurations {
+	apt
+}
+
+
+android {
+
+	aptOutput = file("${project.buildDir}/source/apt_generated")
+	println "****************************"
+	println ""
+	println "manifest:  ${processResources.manifestFile}"
+	println "aptOutput:  ${aptOutput}"
+	println "****************************"
+
+	variant.javaCompile.doFirst {
+		println "*** compile doFirst "
+		aptOutput.mkdirs()
+		variant.javaCompile.options.compilerArgs += [
+				'-processorpath', configurations.apt.getAsPath(),
+				'-AandroidManifestFile=' + processResources.manifestFile,
+				'-s', aptOutput
+		]
+	}
+
+	dependencies {
+
+		// finds all APLs via stuff defined in settings.gradle to pull said APL paths
+		// fromprojet.properties file
+		subprojects.findAll{
+		compile project(it.name)
+		}
+		apt "com.squareup.dagger:dagger-compiler:${daggerVersion}"
+		compile "com.squareup.dagger:dagger:${daggerVersion}"
+		compile "com.sqaureup:javawriter:${javawriterVersion}"
+		compile "javax:javax.inject:${javaxinjectVersion}"
+		compile "com.squareup.flow:flow:${flowVersion}"
+		compile "com.squareup.mortar:mortar:${mortarVersion}"
+		compile "com.squareup:otto:${ottoVersion}"
+
+		compile "com.android.support:support-v4:19.0.+"
+		compile "com.android.support:appcompat-v7:19.0.+"
+		compile "com.android.support:gridlayout-v7:19.0.+"
+
+		instrumentTestCompile "com.squareup:fest-android:${festandroidVersion}"
+		instrumentTestCompile "gws.grottworkshop.android-test-kit:espresso-contrib-bundled:${esprerssocontribbundledVersion}"
+		instrumentTestCompile "org.mockito:mocktio-core:${mockitocoreVersion}"
+		instrumentTestCompile "org.objenesis:objenesis:${objenesisVersion}"
+	}
+}
+
+// if not Eclipse clasic layout than yyou find the android.applicationVariants.al
+// code block after tbis
