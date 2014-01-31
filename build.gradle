@@ -35,12 +35,33 @@ buildscript {
 
 apply plugin: 'android'
 
-repositories {
-	mavenCentral()
-	ivy {
+
+configure(allprojects) {
+	ext.androidVersion              = '4.1.1.4'
+	ext.androidSDKVersion           = '19'
+	ext.androidBuildToolsVersion    = '18.1.1'
+	ext.androidSupportVersion       = '18.0.1'
+	ext.androidCompileSdkVersion    = 19
+	ext.androidMinSdkVersion        = 8
+	ext.androidTargetSdkVersion     = 19
+	ext.androidAnnotationsVersion   = '2.7.1'
+	ext.robotiumVersion             = '4.3'
+	ext.dexmakerVersion             = '1.0'
+	ext.dexmakerMockitoVersion      = '1.0'
+	ext.mockitoVersion              = '1.9.5'
+}
+
+// inject these settings in all of the sub projects
+configure(subprojects) { subproject ->
+	repositories {
+		mavenCentral()
+		ivy {
 		url "${System.properties['user.home']}/.ivy2/local"
 	}
+	}
 }
+
+
 
 // extension properties, helps in bulds with multiple sub modules, etc
 ext.daggerVersion = '1.1.0';
