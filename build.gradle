@@ -34,21 +34,49 @@ buildscript {
 }
 
 apply plugin: 'android'
+apply plugin 'eclipse'
+
+def versionMajor = 3
+def versionMinor = 0
+def versionPatch = 0
+def versionBuild = 0 // bump for dogfood builds, public betas, etc.
 
 
 configure(allprojects) {
-	ext.androidVersion              = '4.1.1.4'
+
+	// we have to load certain stuff from local.properties so its best to
+	// put it allhere as this block gets executed first before
+	// anything else
+	// yeah its a kudge or hack as the android plugin already loads
+	// local.properties in the android block to get sdk.dir
+	Properties p = new Properties ()
+	p.load ( new FileInputStream ( rootProject.file ( 'local.properties' ) ) )
+
+
+	ext.graphviz p.graphviz
+
+
+
+	ext.androidVersion              = '4.4.2'
 	ext.androidSDKVersion           = '19'
-	ext.androidBuildToolsVersion    = '18.1.1'
-	ext.androidSupportVersion       = '18.0.1'
+	ext.androidBuildToolsVersion    = '19.0.1'
+	ext.androidSupportVersion       = '19.0.1'
 	ext.androidCompileSdkVersion    = 19
-	ext.androidMinSdkVersion        = 8
+	ext.androidMinSdkVersion        = 9
 	ext.androidTargetSdkVersion     = 19
-	ext.androidAnnotationsVersion   = '2.7.1'
-	ext.robotiumVersion             = '4.3'
-	ext.dexmakerVersion             = '1.0'
-	ext.dexmakerMockitoVersion      = '1.0'
-	ext.mockitoVersion              = '1.9.5'
+	ext.androidTestPackageName = "gws.grottworkshop.myandroidprojecttemplate.test"
+	ext.androidTestInstrumentTestRunner = "com.google.android.apps.common.testing.testrunner.GoogleInstrumentationTestRunner"
+	ext.androidPackageName = "gws.grottworkshop.myandroidprojecttemplate"
+	ext.daggerVersion = '1.1.0';
+    ext.javawriterVersion = '2.1.1';
+    ext.javaxinjectVersion = '1';
+    ext.flowVersion = '0.2';
+    ext.mortarVersion = '0.2';
+    ext.ottoVersion = '1.3.4';
+    ext.festandroidVersion = '1.0.7';
+    ext.esprerssocontribbundledVersion = '1.1';
+    ext.mockitocoreVersion = '1.9.5';
+    ext.objenesisVersion = '1.0';
 }
 
 // inject these settings in all of the sub projects
@@ -63,17 +91,7 @@ configure(subprojects) { subproject ->
 
 
 
-// extension properties, helps in bulds with multiple sub modules, etc
-ext.daggerVersion = '1.1.0';
-ext.javawriterVersion = '2.1.1';
-ext.javaxinjectVersion = '1';
-ext.flowVersion = '0.2';
-ext.mortarVersion = '0.2';
-ext.ottoVersion = '1.3.4';
-ext.festandroidVersion = '1.0.7';
-ext.esprerssocontribbundledVersion = '1.1';
-ext.mockitocoreVersion = '1.9.5';
-ext.objenesisVersion = '1.0';
+
 
 configurations {
 	apt
@@ -99,13 +117,82 @@ android {
 		]
 	}
 
+	compileSdkVersion ="${androidCompileSdkVersion}"
+	buildToolsVersion = "${androidBuildToolsVersion}"
+
+	sourceSets {
+		main {
+			manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            resources.srcDirs = ['src']
+            renderscript.srcDirs = ['src']
+            res.srcDirs = ['res']
+            assets.srcDirs = ['assets']
+		}
+		instrumentTest.setRoot('TMyAndroidProjectTemplateTest')
+		instrumentTest {
+		  java.srcDirs = ['TMyAndroidProjectTemplateTest/src']
+		  res.srcDirs = ['TMyAndroidProjectTemplateTest/res']
+		  assets.srcDirs = ['TMyAndroidProjectTemplateTest/assets']
+		  resources.srcDirs = ['TMyAndroidProjectTemplateTest/src']
+		}
+	}
+
+
+	defaultConfig {
+		versionCode versionMajor * 10000 + versionMinor * 1000 + versionPatch * 100 + versionBuild
+		versionName "${versionMajor}.${versionMinor}.${versionPatch}"
+
+		minSdkVersion "${androidMinSdkVersion}"
+		targetSdkVersion "${androidTargetSdkVersion}"
+		packageName "${androidPackageName}"
+		proguardFile getDefaultProguardFile('proguard-android.txt')
+		testPackageName"${androidTestPackageName}"
+		testInstrumentationRunner"${androidTestInstrumentTestRunner}"
+		testHandlingProfiling true
+		testFunctionalTest true
+	  }
+
+	signingConfigs {
+		debug {
+             project.ext.loadSign = false
+          }
+        release {
+            project.ext.loadSign = true
+       }
+	}
+
+	buildTypes {
+		debug {
+			debuggable = true
+			runProguard = false
+			signingConfig signingConfigs.debug
+		}
+
+		release {
+			debuggable = false
+			runProguard = true
+			signingConfig signingConfigs.release
+		}
+	}
+    // as of gradle 1.9 no longerloads gradle.properties so we grab sign.properties
+	// in project root
+	// sign.properties is never stored in source control
+	if ( project.ext.loadSign ) {
+		Properties p = new Properties ()
+		p.load ( new FileInputStream ( rootProject.file ( 'local.properties' ) ) )
+
+		android.signingConfigs.release.storeFile file ( p.file )
+		android.signingConfigs.release.storePassword p.password
+		android.signingConfigs.release.keyAlias p.alias
+		android.signingConfigs.release.keyPassword p.keyPassword
+	}
+
 	dependencies {
 
 		// finds all APLs via stuff defined in settings.gradle to pull said APL paths
 		// fromprojet.properties file
-		subprojects.findAll{
-		compile project(it.name)
-		}
+		compile project ':library1'
 		apt "com.squareup.dagger:dagger-compiler:${daggerVersion}"
 		compile "com.squareup.dagger:dagger:${daggerVersion}"
 		compile "com.sqaureup:javawriter:${javawriterVersion}"
@@ -125,5 +212,34 @@ android {
 	}
 }
 
-// if not Eclipse clasic layout than yyou find the android.applicationVariants.al
-// code block after tbis
+// sets up the Android Eclipse project, using the old Ant based build.
+eclipse {
+    // need to specify Java source sets explicitely, SpringSource Gradle Eclipse plugin
+    // ignores any nodes added in classpath.file.withXml
+    sourceSets {
+        main {
+            java.srcDirs "src", 'gen'
+        }
+    }
+
+    jdt {
+        sourceCompatibility = 1.6
+    }
+
+    classpath {
+        plusConfigurations += project.configurations.compile
+		plusConfigurations += project.configurations.apt
+        containers 'com.android.ide.eclipse.adt.ANDROID_FRAMEWORK', 'com.android.ide.eclipse.adt.LIBRARIES'
+    }
+
+    project {
+        name = appName
+        natures 'com.android.ide.eclipse.adt.AndroidNature'
+        buildCommands.clear();
+        buildCommand "com.android.ide.eclipse.adt.ResourceManagerBuilder"
+        buildCommand "com.android.ide.eclipse.adt.PreCompilerBuilder"
+        buildCommand "org.eclipse.jdt.core.javabuilder"
+        buildCommand "com.android.ide.eclipse.adt.ApkBuilder"
+    }
+}
+
