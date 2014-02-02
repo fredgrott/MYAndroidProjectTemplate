@@ -176,7 +176,7 @@ android {
 		compile project ':library1'
 		compile project ':appcompat'
 		compile project ':gridlayout'
-		provied "com.squareup.dagger:dagger-compiler:${daggerVersion}"
+		provided "com.squareup.dagger:dagger-compiler:${daggerVersion}"
 		compile "com.squareup.dagger:dagger:${daggerVersion}"
 		compile "com.sqaureup:javawriter:${javawriterVersion}"
 		compile "javax:javax.inject:${javaxinjectVersion}"
@@ -217,26 +217,8 @@ eclipse {
 
         containers 'com.android.ide.eclipse.adt.ANDROID_FRAMEWORK', 'com.android.ide.eclipse.adt.LIBRARIES'
     }
-	classpath.file {
-		beforeMerged { classpath ->
-			classpath.entries.removeAll() { c ->
-				c.kind == 'src'
-			}
-		}
-
-		withXml {
-			def node = it.asNode()
 
 
-
-			node.children().removeAll() { c ->
-				def path = c.attribute('path')
-				path != null && (
-
-						path.contains('/com.android.support/support-v4')
-						)
-			}
-		}
 
     project {
         name = appName
