@@ -42,7 +42,17 @@ def versionPatch = 0
 def versionBuild = 0 // bump for dogfood builds, public betas, etc.
 
 
-configure(allprojects) {
+
+
+// inject these settings in all of the sub projects
+configure(subprojects) { subproject ->
+	repositories {
+		mavenCentral()
+		ivy {
+		url "${System.properties['user.home']}/.ivy2/local"
+	   }
+	}
+
 
 	// we have to load certain stuff from local.properties so its best to
 	// put it allhere as this block gets executed first before
@@ -57,55 +67,34 @@ configure(allprojects) {
 
 
 
-	ext.androidVersion              = '4.4.2'
-	ext.androidSDKVersion           = '19'
 	ext.androidBuildToolsVersion    = '19.0.1'
-	ext.androidSupportVersion       = '19.0.1'
+
 	ext.androidCompileSdkVersion    = 19
-	ext.androidMinSdkVersion        = 9
-	ext.androidTargetSdkVersion     = 19
-	ext.androidTestPackageName = "gws.grottworkshop.myandroidprojecttemplate.test"
-	ext.androidTestInstrumentTestRunner = "com.google.android.apps.common.testing.testrunner.GoogleInstrumentationTestRunner"
-	ext.androidPackageName = "gws.grottworkshop.myandroidprojecttemplate"
+
+
 	ext.daggerVersion = '1.1.0';
-    ext.javawriterVersion = '2.1.1';
-    ext.javaxinjectVersion = '1';
-    ext.flowVersion = '0.2';
-    ext.mortarVersion = '0.2';
-    ext.ottoVersion = '1.3.4';
-    ext.festandroidVersion = '1.0.7';
-    ext.esprerssocontribbundledVersion = '1.1';
-    ext.mockitocoreVersion = '1.9.5';
-    ext.objenesisVersion = '1.0';
-}
+	ext.javawriterVersion = '2.1.1';
+	ext.javaxinjectVersion = '1';
+	ext.flowVersion = '0.2';
+	ext.mortarVersion = '0.2';
+	ext.ottoVersion = '1.3.4';
+	ext.festandroidVersion = '1.0.7';
+	ext.esprerssocontribbundledVersion = '1.1';
+	ext.mockitocoreVersion = '1.9.5';
+	ext.objenesisVersion = '1.0';
 
-// inject these settings in all of the sub projects
-configure(subprojects) { subproject ->
-	repositories {
-		mavenCentral()
-		ivy {
-		url "${System.properties['user.home']}/.ivy2/local"
-	}
-	}
 }
 
 
 
 
 
-configurations {
-	apt
-}
+
 
 
 android {
 
-	aptOutput = file("${project.buildDir}/source/apt_generated")
-	println "****************************"
-	println ""
-	println "manifest:  ${processResources.manifestFile}"
-	println "aptOutput:  ${aptOutput}"
-	println "****************************"
+
 
 
 
@@ -135,12 +124,12 @@ android {
 		versionCode versionMajor * 10000 + versionMinor * 1000 + versionPatch * 100 + versionBuild
 		versionName "${versionMajor}.${versionMinor}.${versionPatch}"
 
-		minSdkVersion "${androidMinSdkVersion}"
-		targetSdkVersion "${androidTargetSdkVersion}"
-		packageName "${androidPackageName}"
+		minSdkVersion 9
+		targetSdkVersion 19
+		packageName "gws.grottworkshop.myandroidprojecttemplate"
 		proguardFile getDefaultProguardFile('proguard-android.txt')
-		testPackageName"${androidTestPackageName}"
-		testInstrumentationRunner"${androidTestInstrumentTestRunner}"
+		testPackageName "gws.grottworkshop.myandroidprojecttemplate"
+		testInstrumentationRunner "com.google.android.apps.common.testing.testrunner.GoogleInstrumentationTestRunner"
 		testHandlingProfiling true
 		testFunctionalTest true
 	  }
@@ -185,6 +174,8 @@ android {
 		// finds all APLs via stuff defined in settings.gradle to pull said APL paths
 		// fromprojet.properties file
 		compile project ':library1'
+		compile project ':appcompat'
+		compile project ':gridlayout'
 		provied "com.squareup.dagger:dagger-compiler:${daggerVersion}"
 		compile "com.squareup.dagger:dagger:${daggerVersion}"
 		compile "com.sqaureup:javawriter:${javawriterVersion}"
@@ -194,12 +185,10 @@ android {
 		compile "com.squareup:otto:${ottoVersion}"
 
 		/*
-		 * while android support v4 is auto included in libs sub directory
-		 * we load other support libs with resources via manula inclusion
-		 * thus no entries for them here. Not the best hack but the
-		 * files to od manuallyis very small.
+		  If using other android support libs that depend upon
+		  android.support.v4 thanwe do nto include here as its
+		  alyead covered in the APL's own build.gradle file
 		 */
-		compile files('./libs/android-support-v4.jar')
 
 
 		instrumentTestCompile "com.squareup:fest-android:${festandroidVersion}"
@@ -243,10 +232,7 @@ eclipse {
 			node.children().removeAll() { c ->
 				def path = c.attribute('path')
 				path != null && (
-					/*
-					   If adding other support jars plus resources add
-					   path to jar here excluding extension
-					 */
+
 						path.contains('/com.android.support/support-v4')
 						)
 			}

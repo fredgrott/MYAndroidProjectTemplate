@@ -17,6 +17,12 @@ android {
 	compileSdkVersion rootProject.androidSDKVersion
 	buildToolsVersion  rootProject.androidBuildToolsVersion
 
+	defaultConfig {
+		minSdkVersion 7
+		packageName "android.support.v7.appcompat"
+
+	}
+
 	sourceSets {
 		main {
 			manifest.srcFile 'AndroidManifest.xml'
@@ -29,14 +35,8 @@ android {
 
 	}
 
-	dependencies {
-		provided "com.squareup.dagger:dagger-compiler:${daggerVersion}"
-		compile "com.squareup.dagger:dagger:${daggerVersion}"
-		compile "com.sqaureup:javawriter:${javawriterVersion}"
-		compile "javax:javax.inject:${javaxinjectVersion}"
-		compile "com.squareup.flow:flow:${flowVersion}"
-		compile "com.squareup.mortar:mortar:${mortarVersion}"
-		compile "com.squareup:otto:${ottoVersion}"
+	dependencies{
+		// to include the android support v4 lib
+		compile "android.support:support-v4:19.01"
 	}
-
 }
