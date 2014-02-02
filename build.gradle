@@ -107,15 +107,7 @@ android {
 	println "aptOutput:  ${aptOutput}"
 	println "****************************"
 
-	variant.javaCompile.doFirst {
-		println "*** compile doFirst "
-		aptOutput.mkdirs()
-		variant.javaCompile.options.compilerArgs += [
-				'-processorpath', configurations.apt.getAsPath(),
-				'-AandroidManifestFile=' + processResources.manifestFile,
-				'-s', aptOutput
-		]
-	}
+
 
 	compileSdkVersion ="${androidCompileSdkVersion}"
 	buildToolsVersion = "${androidBuildToolsVersion}"
@@ -193,7 +185,7 @@ android {
 		// finds all APLs via stuff defined in settings.gradle to pull said APL paths
 		// fromprojet.properties file
 		compile project ':library1'
-		apt "com.squareup.dagger:dagger-compiler:${daggerVersion}"
+		provied "com.squareup.dagger:dagger-compiler:${daggerVersion}"
 		compile "com.squareup.dagger:dagger:${daggerVersion}"
 		compile "com.sqaureup:javawriter:${javawriterVersion}"
 		compile "javax:javax.inject:${javaxinjectVersion}"
@@ -201,9 +193,14 @@ android {
 		compile "com.squareup.mortar:mortar:${mortarVersion}"
 		compile "com.squareup:otto:${ottoVersion}"
 
-		compile "com.android.support:support-v4:19.0.+"
-		compile "com.android.support:appcompat-v7:19.0.+"
-		compile "com.android.support:gridlayout-v7:19.0.+"
+		/*
+		 * while android support v4 is auto included in libs sub directory
+		 * we load other support libs with resources via manula inclusion
+		 * thus no entries for them here. Not the best hack but the
+		 * files to od manuallyis very small.
+		 */
+		compile files('./libs/android-support-v4.jar')
+
 
 		instrumentTestCompile "com.squareup:fest-android:${festandroidVersion}"
 		instrumentTestCompile "gws.grottworkshop.android-test-kit:espresso-contrib-bundled:${esprerssocontribbundledVersion}"
@@ -228,9 +225,32 @@ eclipse {
 
     classpath {
         plusConfigurations += project.configurations.compile
-		plusConfigurations += project.configurations.apt
+
         containers 'com.android.ide.eclipse.adt.ANDROID_FRAMEWORK', 'com.android.ide.eclipse.adt.LIBRARIES'
     }
+	classpath.file {
+		beforeMerged { classpath ->
+			classpath.entries.removeAll() { c ->
+				c.kind == 'src'
+			}
+		}
+
+		withXml {
+			def node = it.asNode()
+
+
+
+			node.children().removeAll() { c ->
+				def path = c.attribute('path')
+				path != null && (
+					/*
+					   If adding other support jars plus resources add
+					   path to jar here excluding extension
+					 */
+						path.contains('/com.android.support/support-v4')
+						)
+			}
+		}
 
     project {
         name = appName

@@ -14,8 +14,8 @@ buildscript {
 apply plugin: 'android-library'
 
 android {
-	compileSdkVersion 19
-	buildToolsVersion "19.0.1"
+	compileSdkVersion rootProject.androidSDKVersion
+	buildToolsVersion  rootProject.androidBuildToolsVersion
 
 	sourceSets {
 		main {
@@ -27,6 +27,16 @@ android {
 			assets.srcDirs = ['assets']
 		}
 
+	}
+
+	dependencies {
+		provided "com.squareup.dagger:dagger-compiler:${daggerVersion}"
+		compile "com.squareup.dagger:dagger:${daggerVersion}"
+		compile "com.sqaureup:javawriter:${javawriterVersion}"
+		compile "javax:javax.inject:${javaxinjectVersion}"
+		compile "com.squareup.flow:flow:${flowVersion}"
+		compile "com.squareup.mortar:mortar:${mortarVersion}"
+		compile "com.squareup:otto:${ottoVersion}"
 	}
 	}
 }
