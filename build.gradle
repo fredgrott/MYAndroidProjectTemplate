@@ -219,7 +219,6 @@ eclipse {
     }
 
 
-
     project {
         name = appName
         natures 'com.android.ide.eclipse.adt.AndroidNature'
