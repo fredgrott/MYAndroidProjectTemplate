@@ -39,3 +39,46 @@ android {
 
 	}
 }
+
+eclipse.classpath.plusConfigurations += configurations.compile
+
+eclipse.classpath.file {
+   beforeMerged { classpath ->
+	   classpath.entries.removeAll() { c ->
+		   c.kind == 'src'
+	   }
+   }
+
+   withXml {
+	   def node = it.asNode()
+
+	   node.appendNode('classpathentry kind="src" path="src"')
+	   node.appendNode('classpathentry kind="src" path="gen"')
+
+	   node.children().removeAll() { c ->
+		   def path = c.attribute('path')
+		   path != null && (
+				   path.contains('/com.android.support/support-v4')
+				   )
+	   }
+   }
+}
+
+eclipse.project {
+   name = 'MyGridLayout'
+
+   natures 'org.springsource.ide.eclipse.gradle.core.nature'
+   natures 'org.eclipse.jdt.core.javanature'
+   natures 'com.android.ide.eclipse.adt.AndroidNature'
+   buildCommand 'com.android.ide.eclipse.adt.ResourceManagerBuilder'
+   buildCommand 'com.android.ide.eclipse.adt.PreCompilerBuilder'
+   buildCommand 'org.eclipse.jdt.core.javabuilder'
+   buildCommand 'com.android.ide.eclipse.adt.ApkBuilder'
+}
+
+
+
+
+
+
+

@@ -40,3 +40,118 @@ android {
 	}
 
 }
+
+android.applicationVariants.all { variant ->
+		//Where to place the generated code
+		variant.ext.set("dagger_gen_${variant.dirName}", file("${project.buildDir}/source/dagger_gen/${variant.dirName}"))
+
+		//Do the actual codeGen things
+		variant.javaCompile.doFirst {
+			File out = variant.ext.get("dagger_gen_${variant.dirName}")
+			out.mkdirs()
+			variant.javaCompile.options.compilerArgs += [
+					'-processorpath', configurations.provided.getAsPath(),
+					'-s', out
+			]
+		}
+}
+
+
+
+
+
+def annotationGeneratedSources = file('.apt_generated')
+
+task prepareAnnotationGeneratedSourceDirs(overwrite: true) << {
+	annotationGeneratedSources.mkdirs()
+
+	sourceSets*.java.srcDirs*.each { it.mkdirs() }
+	sourceSets*.resources.srcDirs*.each { it.mkdirs() }
+}
+
+
+tasks.eclipseClasspath.dependsOn(prepareAnnotationGeneratedSourceDirs)
+
+eclipse.classpath.plusConfigurations += configurations.compile
+
+tasks.eclipseClasspath {
+	doLast {
+		eclipse.classpath.file.withXml {
+			it.asNode().children()[0] + {
+				classpathentry(kind: 'src', path: relativePath(annotationGeneratedSources)) {
+					attributes {
+						attribute name: 'optional', value: true
+					}
+				}
+			}
+		}
+	}
+}
+
+eclipse.jdt.file.withProperties { props ->
+	props.setProperty('org.eclipse.jdt.core.compiler.processAnnotations', 'enabled')
+}
+
+tasks.eclipseJdt {
+	doFirst {
+		def aptPrefs = file('.settings/org.eclipse.jdt.apt.core.prefs')
+		aptPrefs.parentFile.mkdirs()
+
+		aptPrefs.text = """\
+            eclipse.preferences.version=1
+            org.eclipse.jdt.apt.aptEnabled=true
+            org.eclipse.jdt.apt.genSrcDir=${relativePath(annotationGeneratedSources)}
+            org.eclipse.jdt.apt.reconcileEnabled=true
+            """.stripIndent()
+
+		file('.factorypath').withWriter {
+			new groovy.xml.MarkupBuilder(it).'factorypath' {
+				project.configurations.provided.files.each { dep ->
+					'factorypathentry' kind: 'EXTJAR', id: dep.absolutePath, enabled: true, runInBatchMode: false
+				}
+			}
+		}
+	}
+}
+
+
+eclipse.classpath.file {
+   beforeMerged { classpath ->
+	   classpath.entries.removeAll() { c ->
+		   c.kind == 'src'
+	   }
+   }
+
+   withXml {
+	   def node = it.asNode()
+
+	   node.appendNode('classpathentry kind="src" path="src"')
+	   node.appendNode('classpathentry kind="src" path="gen"')
+
+	   node.children().removeAll() { c ->
+		   def path = c.attribute('path')
+		   path != null && (
+				   path.contains('/com.android.support/support-v4')
+				   )
+	   }
+   }
+}
+
+eclipse.project {
+   name = 'MYAndroidProjectTemplate'
+
+   natures 'org.springsource.ide.eclipse.gradle.core.nature'
+   natures 'org.eclipse.jdt.core.javanature'
+   natures 'com.android.ide.eclipse.adt.AndroidNature'
+   buildCommand 'com.android.ide.eclipse.adt.ResourceManagerBuilder'
+   buildCommand 'com.android.ide.eclipse.adt.PreCompilerBuilder'
+   buildCommand 'org.eclipse.jdt.core.javabuilder'
+   buildCommand 'com.android.ide.eclipse.adt.ApkBuilder'
+}
+
+
+
+
+
+
+
