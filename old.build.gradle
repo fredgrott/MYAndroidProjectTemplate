@@ -1,0 +1,316 @@
+/*
+   build.gradle file for android java applicatiojn development
+   according to classic Eclipse layout conventions
+
+   TestProject is setup as Eclipse Androdi project but in Gradle its just a
+   sourceset fo dirs not treated as a sub project by Gradle
+
+   authore: Fred Grott 1 27 2014
+*/
+
+buildscript {
+	repositories {
+	  mavenCentral()
+	  // loads local jars that I setup before va ivy
+	  ivy {
+		  url "${System.properties['user.home']}/.ivy2/local"
+	  }
+	}
+     //can we put our optional ant tasks here?
+	// classpath {
+    //        pathElement(location: buildscript.configurations.classpath.asPath)
+      //  }
+	dependencies {
+
+		classpath 'com.android.tools.build:gradle:0.8'
+		classpath 'gws.grottworkshop.checkstyle:checkstyle-all:5.6'
+		classpath 'gws.grottworkshop:gwsdroidlava:1.0'
+		classpath 'gws.grottworkshop:javancss:32.53'
+		classpath 'gws.grottworkshop:zutubi-android-ant:0.7.13'
+		classpath 'jdepend:jdepend:2.9.1'
+		classpath 'org.specs2:classycle:1.4.1'
+
+  }
+}
+
+apply plugin: 'android'
+apply plugin 'eclipse'
+
+def versionMajor = 3
+def versionMinor = 0
+def versionPatch = 0
+def versionBuild = 0 // bump for dogfood builds, public betas, etc.
+
+
+
+
+// inject these settings in all of the sub projects
+configure(subprojects) { subproject ->
+	repositories {
+		mavenCentral()
+		ivy {
+		url "${System.properties['user.home']}/.ivy2/local"
+	   }
+	}
+
+
+	// we have to load certain stuff from local.properties so its best to
+	// put it allhere as this block gets executed first before
+	// anything else
+	// yeah its a kudge or hack as the android plugin already loads
+	// local.properties in the android block to get sdk.dir
+	Properties p = new Properties ()
+	p.load ( new FileInputStream ( rootProject.file ( 'local.properties' ) ) )
+
+
+	ext.graphviz p.graphviz
+
+
+
+	ext.androidBuildToolsVersion    = '19.0.1'
+
+	ext.androidCompileSdkVersion    = 19
+
+
+	ext.daggerVersion = '1.1.0';
+	ext.javawriterVersion = '2.1.1';
+	ext.javaxinjectVersion = '1';
+	ext.flowVersion = '0.2';
+	ext.mortarVersion = '0.2';
+	ext.ottoVersion = '1.3.4';
+	ext.festandroidVersion = '1.0.7';
+	ext.esprerssocontribbundledVersion = '1.1';
+	ext.mockitocoreVersion = '1.9.5';
+	ext.objenesisVersion = '1.0';
+
+}
+
+
+
+
+
+
+
+
+android {
+
+
+
+
+
+	compileSdkVersion ="${androidCompileSdkVersion}"
+	buildToolsVersion = "${androidBuildToolsVersion}"
+
+	sourceSets {
+		main {
+			manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            resources.srcDirs = ['src']
+            renderscript.srcDirs = ['src']
+            res.srcDirs = ['res']
+            assets.srcDirs = ['assets']
+		}
+		instrumentTest.setRoot('TMyAndroidProjectTemplateTest')
+		instrumentTest {
+		  java.srcDirs = ['TMyAndroidProjectTemplateTest/src']
+		  res.srcDirs = ['TMyAndroidProjectTemplateTest/res']
+		  assets.srcDirs = ['TMyAndroidProjectTemplateTest/assets']
+		  resources.srcDirs = ['TMyAndroidProjectTemplateTest/src']
+		}
+	}
+
+
+	defaultConfig {
+		versionCode versionMajor * 10000 + versionMinor * 1000 + versionPatch * 100 + versionBuild
+		versionName "${versionMajor}.${versionMinor}.${versionPatch}"
+
+		minSdkVersion 9
+		targetSdkVersion 19
+		packageName "gws.grottworkshop.myandroidprojecttemplate"
+		proguardFile getDefaultProguardFile('proguard-android.txt')
+		testPackageName "gws.grottworkshop.myandroidprojecttemplate"
+		testInstrumentationRunner "com.google.android.apps.common.testing.testrunner.GoogleInstrumentationTestRunner"
+		testHandlingProfiling true
+		testFunctionalTest true
+	  }
+
+	signingConfigs {
+		debug {
+             project.ext.loadSign = false
+          }
+        release {
+            project.ext.loadSign = true
+       }
+	}
+
+	buildTypes {
+		debug {
+			debuggable = true
+			runProguard = false
+			signingConfig signingConfigs.debug
+		}
+
+		release {
+			debuggable = false
+			runProguard = true
+			signingConfig signingConfigs.release
+		}
+	}
+    // as of gradle 1.9 no longerloads gradle.properties so we grab sign.properties
+	// in project root
+	// sign.properties is never stored in source control
+	if ( project.ext.loadSign ) {
+		Properties p = new Properties ()
+		p.load ( new FileInputStream ( rootProject.file ( 'local.properties' ) ) )
+
+		android.signingConfigs.release.storeFile file ( p.file )
+		android.signingConfigs.release.storePassword p.password
+		android.signingConfigs.release.keyAlias p.alias
+		android.signingConfigs.release.keyPassword p.keyPassword
+	}
+
+	dependencies {
+
+		// finds all APLs via stuff defined in settings.gradle to pull said APL paths
+		// fromprojet.properties file
+		compile project ':library1'
+		compile project ':appcompat'
+		compile project ':gridlayout'
+		provided "com.squareup.dagger:dagger-compiler:${daggerVersion}"
+		compile "com.squareup.dagger:dagger:${daggerVersion}"
+		compile "com.sqaureup:javawriter:${javawriterVersion}"
+		compile "javax:javax.inject:${javaxinjectVersion}"
+		compile "com.squareup.flow:flow:${flowVersion}"
+		compile "com.squareup.mortar:mortar:${mortarVersion}"
+		compile "com.squareup:otto:${ottoVersion}"
+
+		/*
+		  If using other android support libs that depend upon
+		  android.support.v4 thanwe do nto include here as its
+		  alyead covered in the APL's own build.gradle file
+		 */
+
+
+		instrumentTestCompile "com.squareup:fest-android:${festandroidVersion}"
+		instrumentTestCompile "gws.grottworkshop.android-test-kit:espresso-contrib-bundled:${esprerssocontribbundledVersion}"
+		instrumentTestCompile "org.mockito:mocktio-core:${mockitocoreVersion}"
+		instrumentTestCompile "org.objenesis:objenesis:${objenesisVersion}"
+	}
+}
+
+
+
+android.applicationVariants.all { variant ->
+		//Where to place the generated code
+		variant.ext.set("dagger_gen_${variant.dirName}", file("${project.buildDir}/source/dagger_gen/${variant.dirName}"))
+
+		//Do the actual codeGen things
+		variant.javaCompile.doFirst {
+			File out = variant.ext.get("dagger_gen_${variant.dirName}")
+			out.mkdirs()
+			variant.javaCompile.options.compilerArgs += [
+					'-processorpath', configurations.provided.getAsPath(),
+					'-s', out
+			]
+		}
+}
+
+
+
+
+
+def annotationGeneratedSources = file('.apt_generated')
+
+task prepareAnnotationGeneratedSourceDirs(overwrite: true) << {
+	annotationGeneratedSources.mkdirs()
+
+	sourceSets*.java.srcDirs*.each { it.mkdirs() }
+	sourceSets*.resources.srcDirs*.each { it.mkdirs() }
+}
+
+
+tasks.eclipseClasspath.dependsOn(prepareAnnotationGeneratedSourceDirs)
+
+eclipse.classpath.plusConfigurations += configurations.compile
+
+tasks.eclipseClasspath {
+	doLast {
+		eclipse.classpath.file.withXml {
+			it.asNode().children()[0] + {
+				classpathentry(kind: 'src', path: relativePath(annotationGeneratedSources)) {
+					attributes {
+						attribute name: 'optional', value: true
+					}
+				}
+			}
+		}
+	}
+}
+
+eclipse.jdt.file.withProperties { props ->
+	props.setProperty('org.eclipse.jdt.core.compiler.processAnnotations', 'enabled')
+}
+
+tasks.eclipseJdt {
+	doFirst {
+		def aptPrefs = file('.settings/org.eclipse.jdt.apt.core.prefs')
+		aptPrefs.parentFile.mkdirs()
+
+		aptPrefs.text = """\
+            eclipse.preferences.version=1
+            org.eclipse.jdt.apt.aptEnabled=true
+            org.eclipse.jdt.apt.genSrcDir=${relativePath(annotationGeneratedSources)}
+            org.eclipse.jdt.apt.reconcileEnabled=true
+            """.stripIndent()
+
+		file('.factorypath').withWriter {
+			new groovy.xml.MarkupBuilder(it).'factorypath' {
+				project.configurations.provided.files.each { dep ->
+					'factorypathentry' kind: 'EXTJAR', id: dep.absolutePath, enabled: true, runInBatchMode: false
+				}
+			}
+		}
+	}
+}
+
+
+eclipse.classpath.file {
+   beforeMerged { classpath ->
+	   classpath.entries.removeAll() { c ->
+		   c.kind == 'src'
+	   }
+   }
+
+   withXml {
+	   def node = it.asNode()
+
+	   node.appendNode('classpathentry kind="src" path="src"')
+	   node.appendNode('classpathentry kind="src" path="gen"')
+
+	   node.children().removeAll() { c ->
+		   def path = c.attribute('path')
+		   path != null && (
+				   path.contains('/com.android.support/support-v4')
+				   )
+	   }
+   }
+}
+
+eclipse.project {
+   name = 'MYAndroidProjectTemplate'
+
+   natures 'org.springsource.ide.eclipse.gradle.core.nature'
+   natures 'org.eclipse.jdt.core.javanature'
+   natures 'com.android.ide.eclipse.adt.AndroidNature'
+   buildCommand 'com.android.ide.eclipse.adt.ResourceManagerBuilder'
+   buildCommand 'com.android.ide.eclipse.adt.PreCompilerBuilder'
+   buildCommand 'org.eclipse.jdt.core.javabuilder'
+   buildCommand 'com.android.ide.eclipse.adt.ApkBuilder'
+}
+
+
+
+
+
+
+
