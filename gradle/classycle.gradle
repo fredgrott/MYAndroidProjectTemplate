@@ -39,7 +39,7 @@ class AndroidClassycleTask extends DefaultTask {
 	Boolean mergeInnerClasses = true
 	Project gradleProject = project
 
-	def AndroidclassycleTask() {
+	def AndroidClassycleTask() {
 		description = 'Runs classycle against Android sourcesets.'
 		group = 'Code Quality'
 	}
@@ -53,7 +53,7 @@ class AndroidClassycleTask extends DefaultTask {
 			// see also, maxWarnings and failureProperty arguments
 			ant.classycle(reportFile: outputFile, failOnUnwantedDependencies: failOnUnwantedDependencies, mergeInnerClasses: mergeInnerClasses,
 						   definitionFile: definitionFile ) {
-								fileset(dir: "$gradleProject.buildDir/classes")
+								fileset(dir: "$gradleProject.buildDir/classes/debug")
 						   }
 						if (showViolations) {
 							formatter(type: 'plain', useFile: false)

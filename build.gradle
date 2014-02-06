@@ -1,0 +1,315 @@
+/*
+   build.gralde
+   by Fred Grott(GrootWorkShop) Copyright 2014 Apache 2.0 License
+
+   Eclipse Android Classic layout using nested projects for Google ADT version 22.x
+   General Layout:
+             Parent App Project
+                       APL Project
+                       AppCOPAt APL
+                       Gridlayout APL
+                       TestProject
+                       MonkeyRunner Project
+
+   Limations:
+           Minor manual setupinEclipse IDE
+           Probably will notbe albe torun junit tests via the IDE
+
+
+*/
+
+buildscript {
+	repositories {
+	  mavenCentral()
+	  // loads local jars that I setup before va ivy
+	  ivy {
+		  url "${System.properties['user.home']}/.ivy2/local"
+	  }
+	}
+	 //can we put our optional ant tasks here?
+	// classpath {
+	//        pathElement(location: buildscript.configurations.classpath.asPath)
+	  //  }
+	dependencies {
+
+
+		classpath 'com.android.tools.build:gradle:0.8'
+
+
+  }
+}
+
+configure(rootProject){
+	description = "an android project template parent app"
+
+	ext.androidVersion           = "4.4.2"
+	ext.androidCompileSdkVersion    = 19
+	ext.androidBuildToolsVersion = "19.0.1"
+	ext.androidSourceCompatibility = "1.6"
+	ext.androidTargetCompatibility = "1.6"
+
+	ext.androidParentAppMinSdkVersion = 19
+	ext.androidParentAppTargetSdkVersion = 19
+	ext.androidParentAppPackageName= "gws.grottworkshop.myandroidprojecttemplate"
+	ext.androidParentAppTestPackageName = "gws.grottworkshop.myandroidprojecttemplate.test"
+	ext.androidParentAppTestInstrumentationRunner = "com.google.android.apps.common.testing.testrunner.GoogleInstrumentationTestRunner"
+	// android extras libs from google
+	ext.androidSupportVersion    = "18.0.0"
+
+
+	ext.daggerVersion = '1.1.0';
+	ext.javawriterVersion = '2.1.1';
+	ext.javaxinjectVersion = '1';
+	ext.flowVersion = '0.2';
+	ext.mortarVersion = '0.2';
+	ext.ottoVersion = '1.3.4';
+	ext.festandroidVersion = '1.0.7';
+	ext.esprerssocontribbundledVersion = '1.1';
+	ext.mockitocoreVersion = '1.9.5';
+	ext.objenesisVersion = '1.0';
+
+}
+
+configure(subprojects) { subproject ->
+	repositories {
+	  mavenCentral()
+	  // loads local jars that I setup before va ivy
+	  ivy {
+		  url "${System.properties['user.home']}/.ivy2/local"
+	  }
+	}
+}
+
+//---------------------------------------------------------
+//    MYAndroidProjectTemplate
+//---------------------------------------------------------
+project('MYAndroidProjectTemplate') {
+
+	apply plugin: 'android'
+	apply plugin: 'eclipse'
+	apply plugin: 'checkstyle'
+	apply plugin: 'findbugs'
+	apply plugin: 'pmd'
+	apply plugin 'jdepend'
+	apply plugin: 'build-dashboard'
+	apply from: '../gradle/classycle.gradle'
+	// uncomment if needed
+	//apply plugin: "sonar-runner"
+
+
+	android {
+		buildToolsVersion "${androidBuildToolsVersion}"
+		compileSdkVersion "${androidCompileSdkVersion}"
+
+
+		sourceSets {
+			main {
+				manifest.srcFile 'AndroidManifest.xml'
+				java.srcDirs = ['src']
+				resources.srcDirs = ['src']
+				renderscript.srcDirs = ['src']
+				res.srcDirs = ['res']
+				assets.srcDirs = ['assets']
+			}
+			instrumentTest.setRoot('TMyAndroidProjectTemplateTest')
+			instrumentTest {
+			  java.srcDirs = ['TMyAndroidProjectTemplateTest/src']
+			  res.srcDirs = ['TMyAndroidProjectTemplateTest/res']
+			  assets.srcDirs = ['TMyAndroidProjectTemplateTest/assets']
+			  resources.srcDirs = ['TMyAndroidProjectTemplateTest/src']
+			}
+		}
+
+		dependencies {
+
+					// gradle will resolve multipe android suport libs and suggest just one
+					// so as to avoid duplicates
+			        //uncomment if needed
+					//compile "com.android.support:support-v4:${androidSupportVersion}"
+
+					compile project ':libraries;library1'
+					compile project ':libraries;appcompat'
+					compile project ':libraries:gridlayout'
+					provided "com.squareup.dagger:dagger-compiler:${daggerVersion}"
+					compile "com.squareup.dagger:dagger:${daggerVersion}"
+					compile "com.sqaureup:javawriter:${javawriterVersion}"
+					compile "javax:javax.inject:${javaxinjectVersion}"
+					compile "com.squareup.flow:flow:${flowVersion}"
+					compile "com.squareup.mortar:mortar:${mortarVersion}"
+					compile "com.squareup:otto:${ottoVersion}"
+
+					instrumentTestCompile "com.squareup:fest-android:${festandroidVersion}"
+					instrumentTestCompile "gws.grottworkshop.android-test-kit:espresso-contrib-bundled:${esprerssocontribbundledVersion}"
+					instrumentTestCompile "org.mockito:mocktio-core:${mockitocoreVersion}"
+					instrumentTestCompile "org.objenesis:objenesis:${objenesisVersion}"
+				}
+
+		// default is 1.6
+		compileOptions {
+			sourceCompatibility = "${androidSourceCompatibility}"
+			targetCompatibility = "${androidTargetCompatibility}"
+		}
+
+		defaultConfig {
+
+			def versionMajor = 3
+			def versionMinor = 0
+			def versionPatch = 0
+			def versionBuild = 0 // bump for dogfood builds, public betas, etc.
+			versionCode versionMajor * 10000 + versionMinor * 1000 + versionPatch * 100 + versionBuild
+			versionName "${versionMajor}.${versionMinor}.${versionPatch}"
+
+			minSdkVersion "${androidParentAppMinSdkVersion}"
+			targetSdkVersion "${androidParentAppTargetSdkVersion}"
+			packageName "${androidParentAppPackageName}"
+			proguardFile getDefaultProguardFile('proguard-android.txt')
+			testPackageName "${androidParentAppTestPackageName}"
+			testInstrumentationRunner "${androidParentAppTestInstrumentationRunner}"
+			testHandlingProfiling true
+			testFunctionalTest true
+		}
+
+		signingConfigs {
+			debug {
+				 project.ext.loadSign = false
+			  }
+			release {
+				project.ext.loadSign = true
+		   }
+		}
+
+		buildTypes {
+			debug {
+				debuggable = true
+				runProguard = false
+				signingConfig signingConfigs.debug
+			}
+
+			release {
+				debuggable = false
+				runProguard = true
+				signingConfig signingConfigs.release
+			}
+		}
+
+		deviceProvider new GenymotionDeviceProvider(project.plugins.findPlugin('android').getSdkParser())
+
+		class GenymotionDeviceProvider extends com.android.builder.testing.ConnectedDeviceProvider {
+			GenymotionDeviceProvider(com.android.builder.SdkParser sdkParser) {
+				super(sdkParser)
+			}
+
+			public String getName() {
+				return "genymotion" // Run with 'gradle genymotionInstrumentTest'
+			}
+
+			public List<? extends com.android.builder.testing.api.DeviceConnector> getDevices() {
+				List localDevices = super.getDevices()
+				def matchingDevices = localDevices.grep {
+					it.getApiLevel() > 9 &&
+							it.iDevice.getProperty("ro.product.manufacturer") == 'Genymotion'
+				}
+
+				if (matchingDevices.size() == 0) {
+					throw new IllegalArgumentException("Couldn't find any connected device that matches [${getName()}] provider.")
+				}
+				matchingDevices
+			}
+		}
+
+       // uncomment if needed
+		//sonarRunner {
+		//	sonarProperties {
+		//		property "sonar.host.url", "http://localhost:9000"
+		//		property "sonar.jdbc.url", "jdbc:h2:tcp://localhost:9092/sonar"
+		//		property "sonar.jdbc.driverClassName", "org.h2.Driver"
+		//		property "sonar.jdbc.username", "sonar"
+		//		property "sonar.jdbc.password", "sonar"
+		//		property "sonar.branch", "gradle"
+		//		property "sonar.dynamicAnalysis", "reuseReports"
+			//	properties["sonar.sources"] = android.sourceSets.main.java.srcDirs
+			//	properties["sonar.tests"] = android.sourceSets.instrumentTest.java.srcDirs
+			//	properties["sonar.binaries"] = file("build/classes/debug")
+			//	property "sonar.surefire.reportsPath","build/instrumentTest-results/connected/"
+		//	}
+		//}
+
+
+		if ( project.ext.loadSign ) {
+			Properties p = new Properties ()
+			p.load ( new FileInputStream ( rootProject.file ( 'local.properties' ) ) )
+
+			android.signingConfigs.release.storeFile file ( p.file )
+			android.signingConfigs.release.storePassword p.password
+			android.signingConfigs.release.keyAlias p.alias
+			android.signingConfigs.release.keyPassword p.keyPassword
+		}
+
+		classycle {
+			definitionFile null
+			showViolations true
+			xslFile file('../config/classycle.xsl')
+		}
+
+		javancss{
+			generateReport true
+		}
+
+		task checkstyle(type: Checkstyle) {
+			configFile file('../config/checkstyle/checkstyle.xml')
+			source 'src'
+			include '**/*.java'
+			exclude '**/gen/**'
+
+			classpath = files( project.configurations.compile.asPath )
+		}
+
+		task findbugs(type: FindBugs) {
+			excludeFilter file('../config/findbugs/findbugs-filter.xml')
+			classes = fileTree('build/classes/debug/')
+			source = fileTree('src')
+			classpath = files( project.configurations.compile.asPath )
+			effort = 'max'
+		}
+
+		task pmd(type: Pmd) {
+			ruleSetFiles = files('../config/pmd/pmd-ruleset.xml')
+			ruleSets = ["basic", "braces", "strings"]
+			source = fileTree(android.sourceSets.main.java.srcDirs)
+		}
+
+		jdepend {
+			toolVersion = "2.9.1"
+			sourceSets = [android.sourceSets.main.java.srcDirs]
+			ignoreFailures = true
+		 }
+
+		 jdependMain {
+			reports {
+			   xml.enabled true
+			   text.enabled false
+			}
+		 }
+
+		 task jdependReport(dependsOn: jdependMain, group: 'verification', description: 'Generates a HTML report after executing jdepend checks.') << {
+			 ext.xmlReport = file("${buildDir}/reports/jdepend/jdepend-${project.name}.xml")
+			 ext.htmlReport = file("${buildDir}/reports/jdepend/jdepend-${project.name}.html")
+			 inputs.files xmlReport
+			 outputs.files htmlReport
+			ant.xslt(
+			   in: xmlReport.absoluteFile
+			   style: "$rootDir/conf/jdepend/jdepend-report.xslt",
+			   out: htmlReport.absoluteFile
+		 }
+
+		 check {
+			dependsOn += ['jdependReport']
+		 }
+
+
+    }
+
+
+  }
+
+}

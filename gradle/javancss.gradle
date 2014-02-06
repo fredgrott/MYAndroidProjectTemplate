@@ -1,0 +1,74 @@
+configurations {
+	codequality
+}
+
+repositories {
+	mavenCentral()
+	ivy {
+		url "${System.properties['user.home']}/.ivy2/local"
+	}
+}
+
+dependencies {
+	codequality 'gws.grottworkshop:javancss:32.53'
+}
+
+
+
+
+task javancss(type: AndroidJavancssTask) {
+	ignoreFailures true
+	showViolations false
+}
+
+check.dependsOn(javancss)
+
+///////////////////////////////////////////////
+////////////// Groovy Task Class //////////////
+///////////////////////////////////////////////
+import java.io.File;
+
+
+
+
+
+import org.gradle.api.internal.project.IsolatedAntBuilder
+
+
+
+class AndroidJavancssTask extends DefaultTask {
+	@InputFile sourceDir = new  File("project.rootDir/src")
+	@InputFile @Optional File xslFile = new File("$project.rootDir/config/javancss/javancss.xsl")
+	@OutputFile @Optional File outputFile = new File("$project.buildDir/reports/classycle/javancss-${project.name}.xml")
+	FileCollection javancssClasspath = project.configurations.codequality
+	Boolean generateReport = true
+
+	def AndroidJavancssTask() {
+		description = 'Runs javancss against Android sourcesets.'
+		group = 'Code Quality'
+	}
+
+	@TaskAction
+	def runJavancss() {
+		outputFile.parentFile.mkdirs()
+		def antBuilder = services.get(IsolatedAntBuilder)
+		antBuilder.withClasspath(javancssClasspath).execute {
+			ant.taskdef(name: 'javancss', classname: 'javancss.JavancssAntTask')
+			// see also, maxWarnings and failureProperty arguments
+			ant.javancss(reportFile: outputFile, failOnUnwantedDependencies: failOnUnwantedDependencies, mergeInnerClasses: mergeInnerClasses,
+						    ) {
+								fileset(dir: sourceDir)
+						   }
+						if (generateReport) {
+							formatter(type: 'plain', useFile: false)
+							formatter(type: 'xml', toFile: outputFile)
+						}
+			}
+			if (xslFile != null && xslFile.exists()) {
+				ant.xslt(in:   outputFile,
+						style: xslFile,
+						out:   outputFile.absolutePath.replaceFirst(~/\.[^\.]+$/, ".html")
+				)
+			}
+	}
+}
