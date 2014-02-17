@@ -68,6 +68,23 @@ configure(rootProject){
 	ext.mockitocoreVersion = '1.9.5';
 	ext.objenesisVersion = '1.0';
 
+
+	ext.codeqa.classycleXslFile = '../config/classycle/classycle.xsl';
+	ext.codeqa.classycleDefFile = '';
+	ext.codeqa.classycleReportsDir = '';
+	ext.codeqa.checkstyleConfigFile = '../config/checkstyle/checkstyle.checks.xml';
+	ext.codeqa.checkstyleXslFile = '../config/checkstyle/checkstyle-noframes-sorted.xsl';
+	ext.codeqa.checkstyleReportsDir = '$buildDir/reports/checkstyle/checkstyle-${project.name}.xml';
+    ext.codeqa.findbugsFilterFile = '../config/findbugs/'findbugs-filter.xml';
+    ext.codeqa.findbugsReportsDir = '$buildDir/reports/findbugs/findbugs-${project.name}';
+    ext.codeqa.pmdRuleSetFiles = '../config/pmd/pmd-ruleset.xml';
+	ext.codeqa.pmdReportsDir = '$buildDir/reports/pmd/pmd-${project.name}';
+	ext.codeqa.jdependReportsDir = '${buildDir}/reports/jdepend/jdepend-${project.name}.xm';
+	ext.codeqa.jdependXslFile = '../conf/jdepend/jdepend-report.xsl';
+	ext.codeqa.javancssXslFile ='../config/javancss/javancss2html.xsl';
+	ext.codeqa.javancssReportsDir = '$buildDir/reports/javancss/javancss-${project.name}.xml';
+
+
 }
 
 configure(subprojects) { subproject ->
@@ -248,43 +265,81 @@ project('MYAndroidProjectTemplate') {
 		classycle {
 			definitionFile null
 			showViolations true
-			xslFile file('../config/classycle.xsl')
+			xslFile file(ext.codeqa.classycleXslFile)
 		}
 
-		javancss{
-			generateReport true
-		}
+		task javancss << {
+
+
+              ant {
+                 taskdef name:'javancss', classname:'javancss.JavancssAntTask', classpath:configurations.javancss.asPath
+                  javancss srcdir:fileTree(android.sourceSets.main.java.srcDirs), ccnPerFuncMax:javaNCSS_ccnPerFuncMax, abortOnFail:javaNCSS_abortOnFail, generateReport:true, outputfile:ext.codeqa.javancssReportsDir, format:'xml'
+                }
+			  ant.xslt(in: ext.codeqa.javancssReportsDir,
+				  style:ext.codeqa.javancssXslFile,
+				  out:"$buildDir/reports/javancss/javancss-${project.name}.html"
+			  )
+          }
 
 		task checkstyle(type: Checkstyle) {
-			configFile file('../config/checkstyle/checkstyle.xml')
-			source 'src'
-			include '**/*.java'
-			exclude '**/gen/**'
+			toolVersion = '5.7'
+			configFile file(ext.codeqa.checkstyleConfigFile)
+			source = fileTree(android.sourceSets.main.java.srcDirs)
 
+			reports {
+				include ( '**/*.java')
+				exclude ('**/gen/**')
+				xml {
+				   destination ext.codeqa.checkstyleReportsDir
+				}
+			}
 			classpath = files( project.configurations.compile.asPath )
+		}
+		// always executed as we do not check if violations ot generate reports
+		task checkstyleReport << {
+
+				ant.xslt(in: "$buildDir/reports/checkstyle/checkstyle-${project.name}.xml",
+					style:ext.codeqa.checkstyleXslFile,
+					out:"$buildDir/reports/checkstyle/checkstyle-${project.name}.html"
+				)
+
 		}
 
 		task findbugs(type: FindBugs) {
-			excludeFilter file('../config/findbugs/findbugs-filter.xml')
+			toolsVerion = ''
+			excludeFilter file(ext.codeqa.findbugsFilterFile)
 			classes = fileTree('build/classes/debug/')
-			source = fileTree('src')
+			source = fileTree(android.sourceSets.main.java.srcDirs)
 			classpath = files( project.configurations.compile.asPath )
 			effort = 'max'
+			reportsDir = file(ext.codeqa.findbugsReportsDir)
+			reports {
+				xml.enabled = true
+				html.enabled = true
+			}
 		}
 
 		task pmd(type: Pmd) {
-			ruleSetFiles = files('../config/pmd/pmd-ruleset.xml')
+			toolVersion = '5.1.0'
+			ruleSetFiles = files(ext.codeqa.pmdRuleSetFiles)
 			ruleSets = ["basic", "braces", "strings"]
 			source = fileTree(android.sourceSets.main.java.srcDirs)
+			reportsDir = file(ext.codeqa.pmdReportsDir)
+			reports {
+				xml.enabled = true
+				html.enabled = true
+			}
 		}
 
 		jdepend {
 			toolVersion = "2.9.1"
 			sourceSets = [android.sourceSets.main.java.srcDirs]
 			ignoreFailures = true
+			reportsDir = ext.codeqa.jdependReportsDir
 		 }
 
 		 jdependMain {
+
 			reports {
 			   xml.enabled true
 			   text.enabled false
@@ -292,18 +347,19 @@ project('MYAndroidProjectTemplate') {
 		 }
 
 		 task jdependReport(dependsOn: jdependMain, group: 'verification', description: 'Generates a HTML report after executing jdepend checks.') << {
-			 ext.xmlReport = file("${buildDir}/reports/jdepend/jdepend-${project.name}.xml")
+			 ext.xmlReport = file(ext.codeqa.jdependReportsDir)
 			 ext.htmlReport = file("${buildDir}/reports/jdepend/jdepend-${project.name}.html")
 			 inputs.files xmlReport
 			 outputs.files htmlReport
 			ant.xslt(
 			   in: xmlReport.absoluteFile
-			   style: "$rootDir/conf/jdepend/jdepend-report.xslt",
+			   style: ext.codeqa.jdependXslFile,
 			   out: htmlReport.absoluteFile
 		 }
 
+		 // to include the codeqa task that is not checks
 		 check {
-			dependsOn += ['jdependReport']
+			dependsOn += ['jdependReport', 'javancss']
 		 }
 
 
