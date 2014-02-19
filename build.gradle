@@ -110,8 +110,7 @@ project('MYAndroidProjectTemplate') {
 	apply plugin 'jdepend'
 	apply plugin: 'build-dashboard'
 	apply from: '../gradle/classycle.gradle'
-	// uncomment if needed
-	//apply plugin: "sonar-runner"
+	apply plugin: "sonar-runner"
 
 
 	android {
@@ -234,22 +233,7 @@ project('MYAndroidProjectTemplate') {
 			}
 		}
 
-       // uncomment if needed
-		//sonarRunner {
-		//	sonarProperties {
-		//		property "sonar.host.url", "http://localhost:9000"
-		//		property "sonar.jdbc.url", "jdbc:h2:tcp://localhost:9092/sonar"
-		//		property "sonar.jdbc.driverClassName", "org.h2.Driver"
-		//		property "sonar.jdbc.username", "sonar"
-		//		property "sonar.jdbc.password", "sonar"
-		//		property "sonar.branch", "gradle"
-		//		property "sonar.dynamicAnalysis", "reuseReports"
-			//	properties["sonar.sources"] = android.sourceSets.main.java.srcDirs
-			//	properties["sonar.tests"] = android.sourceSets.instrumentTest.java.srcDirs
-			//	properties["sonar.binaries"] = file("build/classes/debug")
-			//	property "sonar.surefire.reportsPath","build/instrumentTest-results/connected/"
-		//	}
-		//}
+
 
 
 		if ( project.ext.loadSign ) {
@@ -261,6 +245,8 @@ project('MYAndroidProjectTemplate') {
 			android.signingConfigs.release.keyAlias p.alias
 			android.signingConfigs.release.keyPassword p.keyPassword
 		}
+
+     }
 
 		classycle {
 			definitionFile null
@@ -357,6 +343,24 @@ project('MYAndroidProjectTemplate') {
 			   out: htmlReport.absoluteFile
 		 }
 
+
+
+		 sonarRunner {
+			 sonarProperties {
+				 property "sonar.host.url", "http://localhost:9000"
+				 property "sonar.jdbc.url", "jdbc:h2:tcp://localhost:9092/sonar"
+				 property "sonar.jdbc.driverClassName", "org.h2.Driver"
+				 property "sonar.jdbc.username", "sonar"
+				 property "sonar.jdbc.password", "sonar"
+				 property "sonar.branch", "gradle"
+				 property "sonar.dynamicAnalysis", "reuseReports"
+				 properties["sonar.sources"] = android.sourceSets.main.java.srcDirs
+				 properties["sonar.tests"] = android.sourceSets.instrumentTest.java.srcDirs
+				 properties["sonar.binaries"] = file("build/classes/debug")
+				 property "sonar.surefire.reportsPath","build/instrumentTest-results/connected/"
+			 }
+		 }
+
 		 // to include the codeqa task that is not checks
 		 check {
 			dependsOn += ['jdependReport', 'javancss']
@@ -366,6 +370,57 @@ project('MYAndroidProjectTemplate') {
     }
 
 
-  }
+	tasks.eclipseClasspath.dependsOn(prepareAnnotationGeneratedSourceDirs)
+
+	eclipse.classpath.plusConfigurations += configurations.compile
+
+	tasks.eclipseClasspath {
+		doLast {
+			eclipse.classpath.file.withXml {
+				it.asNode().children()[0] + {
+					classpathentry(kind: 'src', path: relativePath(annotationGeneratedSources)) {
+						attributes {
+							attribute name: 'optional', value: true
+						}
+					}
+				}
+			}
+		}
+	}
+
+	eclipse.classpath.file {
+		beforeMerged { classpath ->
+			classpath.entries.removeAll() { c ->
+				c.kind == 'src'
+			}
+		}
+
+		withXml {
+			def node = it.asNode()
+
+			node.appendNode('classpathentry kind="src" path="src"')
+			node.appendNode('classpathentry kind="src" path="gen"')
+
+			node.children().removeAll() { c ->
+				def path = c.attribute('path')
+				path != null && (
+						path.contains('/com.android.support/support-v4')
+						)
+			}
+		}
+	 }
+
+	 eclipse.project {
+		name = 'MYAndroidProjectTemplate'
+
+		natures 'org.springsource.ide.eclipse.gradle.core.nature'
+		natures 'org.eclipse.jdt.core.javanature'
+		natures 'com.android.ide.eclipse.adt.AndroidNature'
+		buildCommand 'com.android.ide.eclipse.adt.ResourceManagerBuilder'
+		buildCommand 'com.android.ide.eclipse.adt.PreCompilerBuilder'
+		buildCommand 'org.eclipse.jdt.core.javabuilder'
+		buildCommand 'com.android.ide.eclipse.adt.ApkBuilder'
+	 }
+
 
 }
