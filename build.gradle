@@ -34,7 +34,8 @@ buildscript {
 
 
 		classpath 'com.android.tools.build:gradle:0.8'
-
+        classpath 'gws.grottworkshop.checkstyle:sheckstyle-all:5.7'
+		classpath 'jdepend:jdepend:2.9.1'
 
   }
 }
@@ -97,6 +98,16 @@ configure(subprojects) { subproject ->
 	}
 }
 
+configurations {
+	codeCoverage
+	codeCoverageAnt
+ }
+ dependencies {
+	codeCoverage 'org.jacoco:org.jacoco.agent:0.5.10.201208310627:runtime@jar'
+	codeCoverageAnt 'org.jacoco:org.jacoco.ant:0.5.10.201208310627'
+ }
+
+
 //---------------------------------------------------------
 //    MYAndroidProjectTemplate
 //---------------------------------------------------------
@@ -110,8 +121,16 @@ project('MYAndroidProjectTemplate') {
 	apply plugin 'jdepend'
 	apply plugin: 'build-dashboard'
 	apply from: '../gradle/classycle.gradle'
+	apply from: '../gradle/javancss.gradle'
 	apply plugin: "sonar-runner"
+	apply plugin: 'jacoco'
 
+
+	//Jacoco plugin information declaration,but jacoco didn't work here,but it works in the java project with the same configuration.
+	jacoco {
+		toolVersion = "0.6.2.201302030002"
+		reportsDir = file("$buildDir/customJacocoReportDir")
+	}
 
 	android {
 		buildToolsVersion "${androidBuildToolsVersion}"
@@ -248,24 +267,28 @@ project('MYAndroidProjectTemplate') {
 
      }
 
-		classycle {
-			definitionFile null
-			showViolations true
-			xslFile file(ext.codeqa.classycleXslFile)
+	jacoco {
+		append = false
+		destinationFile = file("$buildDir/jacoco/jacocoTest.exec")
+		classDumpFile = file("$buildDir/jacoco/classpathdumps")
+	}
+	jacocoTestReport {
+		reports {
+		xml.enabled false
+		csv.enabled false
+		html.destination "${buildDir}/reports/jacoco/jacocoHtml"
 		}
+	}
 
-		task javancss << {
-
-
-              ant {
-                 taskdef name:'javancss', classname:'javancss.JavancssAntTask', classpath:configurations.javancss.asPath
-                  javancss srcdir:fileTree(android.sourceSets.main.java.srcDirs), ccnPerFuncMax:javaNCSS_ccnPerFuncMax, abortOnFail:javaNCSS_abortOnFail, generateReport:true, outputfile:ext.codeqa.javancssReportsDir, format:'xml'
-                }
-			  ant.xslt(in: ext.codeqa.javancssReportsDir,
-				  style:ext.codeqa.javancssXslFile,
-				  out:"$buildDir/reports/javancss/javancss-${project.name}.html"
-			  )
-          }
+	tasks.whenTaskAdded { task ->
+		if (task.name == 'testDefaultFlavorDebug') { /* Name of your test task */
+		   task.jvmArgs "-javaagent:${configurations.codeCoverage.asPath}=destfile=${project.buildDir.path}/coverage-results/jacoco.exec,sessionid=HSServ,append=false",
+				'-Djacoco=true',
+				'-Xms128m',
+				'-Xmx512m',
+				'-XX:MaxPermSize=128m'
+		}
+	}
 
 		task checkstyle(type: Checkstyle) {
 			toolVersion = '5.7'

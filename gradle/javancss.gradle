@@ -37,7 +37,7 @@ import org.gradle.api.internal.project.IsolatedAntBuilder
 
 
 class AndroidJavancssTask extends DefaultTask {
-	@InputFile sourceDir = new  File("project.rootDir/src")
+
 	@InputFile @Optional File xslFile = new File("$project.rootDir/config/javancss/javancss.xsl")
 	@OutputFile @Optional File outputFile = new File("$project.buildDir/reports/classycle/javancss-${project.name}.xml")
 	FileCollection javancssClasspath = project.configurations.codequality
@@ -57,7 +57,7 @@ class AndroidJavancssTask extends DefaultTask {
 			// see also, maxWarnings and failureProperty arguments
 			ant.javancss(reportFile: outputFile, failOnUnwantedDependencies: failOnUnwantedDependencies, mergeInnerClasses: mergeInnerClasses,
 						    ) {
-								fileset(dir: sourceDir)
+								fileset(dir: fileTree(android.sourceSets.main.java.srcDirs))
 						   }
 						if (generateReport) {
 							formatter(type: 'plain', useFile: false)

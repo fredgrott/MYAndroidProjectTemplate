@@ -15,7 +15,7 @@ dependencies {
 
 task classycle(type: AndroidClassycleTask) {
 	ignoreFailures true
-	showViolations false
+	showViolations true
 }
 
 check.dependsOn(classycle)
